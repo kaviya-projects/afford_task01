@@ -8,18 +8,16 @@ const PORT = 5000;
 
 // ✅ Middleware
 app.use(cors());
-app.use(express.json()); // Parse JSON from frontend
+app.use(express.json()); // Parse JSON body from frontend
 
-// ✅ Path to orders.json
+// ✅ Load orders from JSON file
 const dataPath = path.join(__dirname, 'orders.json');
-
-// ✅ Helper: Load orders from file
 function readOrders() {
   const data = fs.readFileSync(dataPath, 'utf-8');
   return JSON.parse(data);
 }
 
-// ✅ Helper: Paginate array
+// ✅ Paginate results
 function paginate(array, page = 1, limit = 50) {
   const start = (page - 1) * limit;
   const end = start + limit;
@@ -32,7 +30,7 @@ function paginate(array, page = 1, limit = 50) {
   };
 }
 
-// ✅ Root test route
+// ✅ Home route
 app.get('/', (req, res) => {
   res.send('✅ Order Tracking API is running successfully!');
 });
@@ -40,12 +38,9 @@ app.get('/', (req, res) => {
 // ✅ Login route
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  console.log('🛂 Login attempt received:');
-  console.log('→ Username:', username);
-  console.log('→ Password:', password);
+  console.log('🛂 Login Attempt:', { username, password });
 
   if (username === 'admin' && password === 'admin123') {
-    console.log('✅ Login successful');
     return res.json({
       success: true,
       token: 'fake-jwt-token',
@@ -53,7 +48,6 @@ app.post('/api/login', (req, res) => {
     });
   }
 
-  console.log('❌ Invalid credentials');
   return res.status(401).json({
     success: false,
     message: 'Invalid credentials',
@@ -84,35 +78,36 @@ app.get('/o/returned', (req, res) => {
   res.json(paginate(returned, page));
 });
 
-// ✅ Search orders by customerId, productId, or status
+// ✅ Search orders
 app.get('/o/search', (req, res) => {
   const { customerId, productId, status, page } = req.query;
   const pageNum = parseInt(page) || 1;
+
   let orders = readOrders();
 
-  console.log("🔍 Search query received:", { customerId, productId, status, page });
+  console.log("🔍 Search Params:", { customerId, productId, status, page: pageNum });
 
   if (customerId) {
     orders = orders.filter(o => String(o.customerId) === String(customerId));
-    console.log(`🔎 Filtered by customerId (${customerId}): ${orders.length} match(es)`);
+    console.log(`🔎 After customerId filter (${customerId}): ${orders.length}`);
   }
 
   if (productId) {
     orders = orders.filter(o => String(o.productId) === String(productId));
-    console.log(`🔎 Filtered by productId (${productId}): ${orders.length} match(es)`);
+    console.log(`🔎 After productId filter (${productId}): ${orders.length}`);
   }
 
   if (status) {
     orders = orders.filter(o => o.status.toLowerCase() === status.toLowerCase());
-    console.log(`🔎 Filtered by status (${status}): ${orders.length} match(es)`);
+    console.log(`🔎 After status filter (${status}): ${orders.length}`);
   }
 
-  console.log(`✅ Final filtered orders count: ${orders.length}`);
+  console.log(`✅ Final matched orders: ${orders.length}`);
 
   res.json(paginate(orders, pageNum));
 });
 
-// ✅ Start server
+// ✅ Start the server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
